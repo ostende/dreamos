@@ -1,0 +1,10 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib
+includedir=/usr/include
+
+Name: enigma2
+Description: Enigma2
+Version: 4.5.0
+Cflags: -I${includedir}/enigma2 -std=gnu++14
+Requires.private: sigc++-2.0

@@ -1,0 +1,28 @@
+#!/bin/sh
+if [ -f /run/enigma2/system-state ]; then
+	state=`cat /run/enigma2/system-state`
+	case "$state" in
+		"system-restart")
+			if [ -f /proc/stb/fp/force_restart ]; then
+				echo 1 > /proc/stb/fp/force_restart
+				systemctl --no-block poweroff
+			else
+				systemctl --no-block reboot
+			fi
+			;;
+		"system-standby")
+			systemctl --no-block poweroff
+			;;
+		"ui-restart")
+			;;
+		"system-recovery")
+			if [ -f /proc/stb/fp/boot_mode ]; then
+				echo "rescue" > /proc/stb/fp/boot_mode
+				systemctl --no-block reboot
+			else
+				to-the-rescue
+			fi
+			;;
+	esac
+	rm -f /run/enigma2/system-state
+fi

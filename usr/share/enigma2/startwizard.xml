@@ -1,0 +1,457 @@
+<wizard nextstepanimation="wizard_next" previousstepanimation="wizard_previous">
+	<step id="start" nextstep="modeselection" timeout="20" timeoutaction="selectnext">
+		<condition>
+self.condition = self.videoWizardAvailable and (len(self.listPorts()) > 1 or self.selectHDMI())
+		</condition>
+		<text value="Video input selection\n\nPlease press OK if you can see this page on your TV (or select a different input port).\n\nThe next input port will be automatically probed in 20 seconds." />
+		<short_title value="Video Input\nUse up/down buttons." />
+		<list type="dynamic" source="listPorts" evaluation="portSelectionMade" onselect="portSelectionMoved" />
+		<code>
+self["portpic"].show()
+self.clearSelectedKeys()
+self.selectKey("OK")
+		</code>
+	</step>
+	<step id="modeselection" nextstep="rateselection" timeout="20" timeoutaction="selectnext">
+		<condition>
+self.condition = self.videoWizardAvailable
+		</condition>
+		<text value="Video mode selection\n\nPlease press OK if you can see this page on your TV (or select a different video mode).\n\nThe next video mode will be automatically probed in 20 seconds." />
+		<short_title value="Video Mode\nUse up/down buttons." />
+		<list type="dynamic" source="listModes" evaluation="modeSelectionMade" onselect="modeSelectionMoved" />
+		<code>
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+self["portpic"].hide()
+		</code>
+	</step>
+	<step id="rateselection" nextstep="end" timeout="20" timeoutaction="selectnext">
+		<condition>
+self.condition = self.videoWizardAvailable and (self.port != "HDMI" or self.mode == "HDMI-PC")
+		</condition>
+		<text value="Refresh rate selection." />
+		<short_title value="Select refresh rate" />
+		<list type="dynamic" source="listRates" evaluation="rateSelectionMade" onselect="rateSelectionMoved" />
+		<code>
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+		</code>
+	</step>
+	<step id="videoend">
+		<condition>
+self.condition = self.videoWizardAvailable
+		</condition>
+		<code>
+self.hw.saveMode(self.port, self.mode, self.rate)
+from Components.config import configfile
+configfile.save()
+		</code>
+		<text value="You have successfully finished the video setup. If you want to change the settings later, you can do this in the settings menu."/>
+		<short_title value="No picture on TV? Press EXIT and retry." />
+	</step>
+
+		<step id="languageselection" nextstep="introduction">
+			<short_title value="Language selection" />
+			<text value="Please use the UP and DOWN keys to select your language. Afterwards press the OK button." />
+			<multicontentlist type="dynamic" setfunction="setLanguageList" onselect="onLanguageSelect" evaluation="languageSave" />
+			<code>
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+			</code>
+		</step>
+		<step id="introduction" >
+			<short_title value="Startwizard" />
+			<text value="Welcome.\n\nThis start wizard will guide you through the basic setup of your Dreambox.\n\nUse the up/down keys on your remote control to select an option. After that, press OK." />
+			<list>
+				<listentry caption="Use wizard to set up basic features" step="inputdevicesfirmware" />
+				<listentry caption="Exit wizard" step="final" />
+			</list>
+			<code>
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+			</code>
+		</step>
+		<step id="inputdevicesfirmware">
+			<condition>
+self.condition = self.inputDeviceFirmwareMissing
+			</condition>
+			<short_title value="Flash Bluetooth Receiver Firmware?" />
+			<text value="Your Dreambox bluetooth receiver has no firmware installed.\nInstall the latest firmware now?" />
+			<list>
+				<listentry caption="Yes, install the latest bluetooth receiver firmware"  step="inputdevicesflashadapter"/>
+				<listentry caption="No, continue without bluetooth remote setup" step="nima"/>
+			</list>
+			<code>
+self.showState()
+self.showHideButtons()
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+			</code>
+			<code pos="after">
+self.showState()
+self.showHideButtons()
+			</code>
+		</step>
+		<step id="inputdevicesflashadapter" nextstep="inputdevices">
+			<condition>
+self.condition = self.inputDeviceFirmwareMissing
+			</condition>
+			<short_title value="Flashing Bluetooth Receiver" />
+			<text value="Flashing Bluetooth Receiver" />
+			<code async="yes">
+self.flashInputDeviceAdapterFirmware()
+			</code>
+		</step>
+		<step id="inputdevices" nextstep="nima">
+			<condition>
+self.condition = self.inputDeviceWizardAvailable
+			</condition>
+			<short_title value="Input Devices" />
+			<text value="Press Yellow to connect the selected remote control." />
+			<list type="dynamic" source="_getInputDevices" buildfunction="_inputDeviceBuildFunc" style="inputdevice"/>
+			<code>
+self.showState(True)
+self.showHideButtons(False, True)
+self.clearSelectedKeys()
+self.selectKey("UP")
+self.selectKey("DOWN")
+			</code>
+			<code pos="after">
+self.showState()
+self.showHideButtons()
+			</code>
+		</step>
+
+		<step id="nima">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+slot = len(nimmanager.nim_slots) &gt; 0 and nimmanager.nim_slots[0]
+self.condition = slot and not slot.empty and config.misc.startwizard.shownimconfig.value and (slot.inputs is None or slot.channel &lt; len(slot.inputs))
+			</condition>
+			<text dynamictext="setTunerText" />
+			<short_title value="Tuner A" />
+			<config screen="NimSetup" module="Satconfig" args="64" type="ConfigList" />
+			<code>
+self.clearSelectedKeys()
+self.selectKey("LEFT")
+self.selectKey("RIGHT")
+			</code>
+		</step>
+		<step id="nimb">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+slot = len(nimmanager.nim_slots) &gt; 1 and nimmanager.nim_slots[1]
+self.condition = slot and not slot.empty and config.misc.startwizard.shownimconfig.value and (slot.inputs is None or slot.channel &lt; len(slot.inputs))
+			</condition>
+			<text dynamictext="setTunerText" />
+			<short_title value="Tuner B" />
+			<config screen="NimSetup" module="Satconfig" args="65" type="ConfigList" />
+			<code>
+self.clearSelectedKeys()
+self.selectKey("LEFT")
+self.selectKey("RIGHT")
+			</code>
+		</step>
+		<step id="nimc">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+visible_slot = -1
+sl = 0
+slots = len(nimmanager.nim_slots)
+while sl &lt; slots and visible_slot &lt; 2:
+	slot = nimmanager.nim_slots[sl]
+	if slot.inputs is None or slot.channel &lt; len(slot.inputs):
+		visible_slot += 1
+	sl += 1
+self.condition = visible_slot == 2 and not slot.empty
+			</condition>
+			<text dynamictext="setTunerText" />
+			<short_title value="Tuner C" />
+			<config screen="NimSetup" module="Satconfig" args="66" type="ConfigList" />
+			<code>
+self.clearSelectedKeys()
+self.selectKey("LEFT")
+self.selectKey("RIGHT")
+			</code>
+		</step>
+		<step id="nimd">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+visible_slot = -1
+sl = 0
+slots = len(nimmanager.nim_slots)
+while sl &lt; slots and visible_slot &lt; 3:
+	slot = nimmanager.nim_slots[sl]
+	if slot.inputs is None or slot.channel &lt; len(slot.inputs):
+		visible_slot += 1
+	sl += 1
+self.condition = visible_slot == 3 and not slot.empty
+			</condition>
+			<text dynamictext="setTunerText" />
+			<short_title value="Tuner D" />
+			<config screen="NimSetup" module="Satconfig" args="67" type="ConfigList" />
+			<code>
+self.clearSelectedKeys()
+self.selectKey("LEFT")
+self.selectKey("RIGHT")
+			</code>
+		</step>
+		<step id="satlistsquestion">
+			<text value="Do you want to install default sat lists?" />
+			<short_title value="Sat lists" />
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+self.condition = config.misc.startwizard.doservicescan.value and nimmanager.somethingConnected()
+			</condition>
+			<code>
+self.hideRc()
+			</code>
+			<list>
+				<listentry caption="Yes, install default servicelists" step="startdefaultlists" />
+				<listentry caption="No, but do an automatic scan now" step="scan" />
+				<listentry caption="No, but do a manual scan now" step="manualscan" />
+				<listentry caption="No, proceed with empty service list" step="setautomaticstandby" />
+			</list>
+		</step>
+		<step id="finisheddefaultsatlists" nextstep="setautomaticstandby">
+			<!-- dummy screen to continue after default sat lists installation -->
+			<condition>
+self.currStep = self.getStepWithID("setautomaticstandby")
+self.condition = False
+			</condition>
+		</step>
+		<step id="scan" nextstep="setautomaticstandby">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+self.condition = config.misc.startwizard.doservicescan.value and nimmanager.somethingConnected()
+			</condition>			
+			<text value="What do you want to scan?" />
+			<short_title value="Simple Scan" />
+			<config screen="ScanSimple" module="ScanSetup" type="ConfigList" />
+		</step>
+		<step id="manualscan">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+self.condition = config.misc.startwizard.doservicescan.value and nimmanager.somethingConnected()
+			</condition>
+			<text value="What do you want to scan?" />
+			<short_title value="Manual scan" />
+			<config screen="ScanSetup" module="ScanSetup" type="ConfigList" />
+		</step>
+		<step id="nextscan">
+			<condition>
+from Components.config import config
+from Components.NimManager import nimmanager
+self.condition = config.misc.startwizard.doservicescan.value and nimmanager.somethingConnected()
+			</condition>
+			<text value="Do you want to do another manual service scan?" />
+			<short_title value="Manual scan" />
+			<list>
+				<listentry caption="Yes, do another manual scan now" step="manualscan" />
+				<listentry caption="No, scan later manually" step="setautomaticstandby" />
+			</list>
+		</step>
+		<step id="setautomaticstandby">
+			<text value="Automatic standby mode\n\nIf you don't press any button on the remote control, your Dreambox can enter the standby mode automatically. You can choose the period after which the standby mode will be activated or disable this functionality now." />
+			<short_title value="Auto Standby" />
+			<list type="config" configelement="config.usage.inactivity_shutdown" />
+			<code pos="after">
+config.usage.inactivity_shutdown_initialized.value = True
+config.usage.inactivity_shutdown_initialized.save()
+			</code>
+		</step>
+		<step id="enableparentalcontrol">
+			<text value="Do you want to enable the parental control feature on your dreambox?" />
+			<short_title value="ParentControl" />
+			<list>
+				<listentry caption="Disable Parental Control" step="expert" />
+				<listentry caption="Enable Parental Control" step="parentalsetup" />
+			</list>
+			<code pos="after">
+from Components.config import config
+if self["list"].index == 0:
+	config.ParentalControl.configured.value = False
+else:
+	config.ParentalControl.configured.value = True
+config.ParentalControl.configured.save()
+			</code>
+		</step>
+		<step id="parentalsetup">
+			<text value="You need to set a PIN code and hide it from your children.\n\nDo you want to set the pin now?" />
+			<short_title value="Parent PIN" />
+			<list>
+				<listentry caption="Yes" step="finishparentalsetup" />
+				<listentry caption="No" step="warnpin" />
+			</list>
+			<code pos="after">
+from Components.config import config
+from ParentalControlSetup import ParentalControlChangePin
+if self["list"].index == 0:
+	from Components.config import config
+	config.ParentalControl.configured.value = True
+	config.ParentalControl.configured.save()
+	self.openScreen(ParentalControlChangePin, config.ParentalControl.servicepin[0], _("parental control pin"))
+			</code>
+		</step>
+		<step id="warnpin">
+			<text value="Please be aware, that anyone can disable the parental control, if you have not set a PIN." />
+			<short_title value="PIN WARNING" />
+		</step>
+		<step id="finishparentalsetup">
+			<code>
+from Components.config import config
+if config.ParentalControl.setuppin.value == -1:
+	config.ParentalControl.setuppinactive.value = False
+else:
+	config.ParentalControl.setuppinactive.value = True
+config.ParentalControl.setuppinactive.save()
+config.ParentalControl.servicepinactive.value = True
+config.ParentalControl.servicepinactive.save()
+config.ParentalControl.setuppin.value = config.ParentalControl.servicepin[0].value
+config.ParentalControl.setuppin.save()
+			</code>
+
+			<text value="After the start wizard is completed, you need to protect single services. Refer to your dreambox's manual on how to do that." />
+			<short_title value="ParentControl Finished" />
+		</step>
+		<step id="expert">
+			<text value="Your Dreambox offers three levels of configuration options:\n\nSimple - We suggest this level if this is your first contact with a Dreambox.\nIntermediate - This level enables you to change some more options, mainly the graphical user interface and the behaviour of your Dreambox.\nExpert - This gives you full control over all available settings of your Dreambox.\n\nWarning: Higher levels may lead to increased usage complexity." />
+			<short_title value="User level" />
+			<list type="config" configelement="config.usage.setup_level" />
+		</step>
+		<step id="multibouquets">
+			<condition>
+from Components.config import config
+self.condition = config.usage.setup_level.value != "simple" 
+			</condition>
+			<text value="Multiple Favourites\n\nYour Dreambox offers a multiple favourites feature. If this feature is active, you can manage multiple favourite lists of TV and radio services. If deactivated, only one favourite list is available which makes navigation a bit easier.\n\nWould you like to activate the multiple favourites feature now?" />
+			<short_title value="Favourites" />
+			<list type="config" configelement="config.usage.multibouquet" />
+		</step>
+		<step id="end">
+			<condition>
+self.condition = self.isLastWizard
+			</condition>
+			<text value="Thank you for using the wizard. Your box is now ready to use.\nPlease press OK to start using your Dreambox." />
+			<short_title value="Finished" />
+		</step>
+
+		<step id="startnetwork" nextstep="alreadyconnected">
+			<text value="Welcome.\n\nIf you want to connect your Dreambox to a network and/or the Internet, this wizard will guide you through the basic network setup of your Dreambox.\n\nPress OK to start configuring your network" />
+			<short_title value="Network connection" />
+			<code>
+self.showState(True)
+self.clearSelectedKeys()
+self.selectKey("OK")
+			</code>
+			<condition>
+self.condition = self.networkWizardAvailable and not self.isNetworkConnected()
+			</condition>
+	</step>
+	<step id="alreadyconnected">
+		<text value="Your Dreambox is already connected to the Internet.\nThere is no network configuration required." />
+		<short_title value="Connected" />
+		<list>
+			<listentry caption="Skip network configuration" step="automaticupdatecheck" />
+			<listentry caption="Adjust network settings" step="technologies" />
+		</list>
+		<condition>
+self.condition = self.networkWizardAvailable and self.isNetworkConnected()
+		</condition>
+		<code>
+self.showState(True)
+		</code>
+	</step>
+	<step id="technologies" nextstep="services">
+		<condition>
+self.condition = self.networkWizardAvailable 
+		</condition>
+		<code>
+self.showHideButtons()
+self.clearSelectedKeys()
+self.selectKey("RIGHT")
+self.selectKey("LEFT")
+		</code>
+		<code pos="after">
+self.showHideButtons()
+		</code>
+			<text value="Please select one or more network technologies that should be used to connect your Dreambox to a Network and/or the Internet.\n\nYou may want to plug in USB Networking devices now (if you want to use any)." />
+		<short_title value="Network technologies" />
+		<config type="dynamic" source="getTechnologyConfig" evaluation="technologiesSet" />
+	</step>
+	<step id="services" nextstep="noconnection">
+		<condition>
+self.condition = self.networkWizardAvailable 
+		</condition>
+		<text value="Please select the network service(s) you want to connect your Dreambox to.\nIt may take a few moments before wireless networks show up in the list below!" />
+		<short_title value="Network services" />
+		<list type="dynamic" source="getServiceList" style="networkservice" buildfunction="_buildServiceListEntry" />
+		<code>
+self.checkButtons()
+self.showHideButtons(True, True)
+self.clearSelectedKeys()
+self.selectKey("GREEN")
+self.selectKey("YELLOW")
+		</code>
+		<code pos="after">
+self.showHideButtons()
+		</code>
+	</step>
+	<step id="noconnection">
+		<text value="There is no active connection." />
+		<short_title value="No Connection" />
+		<list>
+			<listentry caption="Start over" step="technologies" />
+			<listentry caption="Exit wizard" step="networkend" />
+		</list>
+		<condition>
+self.condition = self.networkWizardAvailable and not self.isNetworkConnected()
+		</condition>
+	</step>
+	<step id="addressconfig" nextstep="dnsconfig">
+		<text value="Please configure at least on set of IP Addresses (IPv4 or IPv6)." />
+		<short_title value="IP Addresses" />
+		<config type="dynamic" source="getAddressConfig" evaluation="saveAddressConfig" />
+		<condition>
+self.condition = self.networkWizardAvailable and self.ipConfigurationRequired()
+		</condition>
+	</step>
+	<step id="dnsconfig" nextstep="networkend">
+		<text value="Please configure at least one valid name server (DNS)." />
+		<short_title value="DNS Addresses" />
+		<config type="dynamic" source="getNameserverConfig" evaluation="saveNameserverConfig" />
+		<condition>
+self.condition = self.networkWizardAvailable and not self.isOnline()
+		</condition>
+	</step>
+	<step id="networkend" nextstep="automaticupdatecheck">
+		<condition>
+self.condition = self.networkWizardAvailable and not self.isNetworkConnected()
+		</condition>
+		<text value="Your Network connection is NOT set up!\nPlease go back to reconfigure or press OK to continue anyways." />
+		<short_title value="No network" />
+	</step>
+	<step id="automaticupdatecheck" laststep="true">
+		<text value="Automatically check for new updates.\nPlease select the interval for automated update checks." />
+		<short_title value="Automatic Update Check" />
+		<list type="config" configelement="config.plugins.updatechecker.interval" />
+	</step>
+	<step id="final" laststep="true">
+		<condition>
+self.condition = False
+		</condition>
+	</step>
+</wizard>
+
