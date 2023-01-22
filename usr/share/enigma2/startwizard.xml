@@ -340,7 +340,14 @@ self.condition = config.usage.setup_level.value != "simple"
 			<short_title value="Favourites" />
 			<list type="config" configelement="config.usage.multibouquet" />
 		</step>
-		<step id="end">
+		<step id="dmsettings">
+            <text value="Welcome to your new DreamArabia build image!\n\nPlease press OK to start Settings Wizard.\n\nRegards\n\nDreamArabia Team" />
+			<code pos="after">
+from Plugins.Extensions.DmArabia.download import Getsettinglist
+self.session.open(Getsettinglist, mode="Wizard")
+			</code>
+        </step>
+	     <step id="end">
 			<condition>
 self.condition = self.isLastWizard
 			</condition>
