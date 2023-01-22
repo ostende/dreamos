@@ -76,6 +76,8 @@ def loadSkin(name, scope = SCOPE_SKIN):
 config.skin = ConfigSubsection()
 config.skin.primary_skin = ConfigText(default = "skin.xml")
 
+config.skin.primary_skin2 = ConfigText(default = "hdsuisse.one4all.fhd/skin.xml")
+
 profile("LoadSkin")
 try:
 	loadSkin('skin_user_display.xml', SCOPE_CONFIG)
@@ -88,7 +90,7 @@ except (SkinError, IOError, AssertionError) as err:
 	print("not loading user skin: ", err)
 
 try:
-	loadSkin(config.skin.primary_skin.value)
+	loadSkin(config.skin.primary_skin2.value)
 except (SkinError, IOError, AssertionError) as err:
 	print("SKIN ERROR:", err)
 	print("defaulting to standard skin...")
