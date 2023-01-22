@@ -1,5 +1,5 @@
 <wizard>
-	<step id="welcome" nextstep="nothingtoinstall">
+	<step id="startplugininstall" nextstep="nothingtoinstall">
 		<condition>
 packagelist = self.fillPackagesList()
 self.runWizard = (len(packagelist) > 0)
